@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RouteTracer — Cycling Route Visualizer</title>
+
+<!-- Leaflet CSS + JS from unpkg (free CDN) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg-deep: #06090f;
+    --bg-primary: #0b1120;
+    --bg-card: #111a2e;
+    --text-primary: #e4eaf6;
+    --text-secondary: #7b8ba8;
+    --text-muted: #3d4f6e;
+    --cyan: #00e5ff;
+    --cyan-dim: rgba(0, 229, 255, 0.12);
+    --green: #00e676;
+    --green-dim: rgba(0, 230, 118, 0.1);
+    --amber: #ffab00;
+    --red: #ff5252;
+    --border: rgba(255,255,255,0.06);
+    --border-bright: rgba(255,255,255,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(6, 9, 15, 0.92);
+    backdrop-filter: blur(20px);
+    z-index: 1000;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-mark {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--cyan), var(--green));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 11px; color: var(--bg-deep);
+  }
+
+  .logo-name {
+    font-weight: 700; font-size: 15px; letter-spacing: -0.3px;
+  }
+  .logo-name em { font-style: normal; color: var(--cyan); }
+
+  .controls {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600; font-size: 12px;
+    padding: 7px 14px; border-radius: 7px;
+    border: none; cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--cyan), var(--green));
+    color: var(--bg-deep); font-weight: 700;
+  }
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: 0 4px 14px rgba(0, 229, 255, 0.3);
+  }
+
+  .btn-ghost {
+    background: var(--bg-card); color: var(--text-secondary);
+    border: 1px solid var(--border-bright);
+  }
+  .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  .file-btn {
+    position: relative; overflow: hidden;
+  }
+  .file-btn input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0;
+  }
+
+  .speed-group {
+    display: flex; gap: 2px;
+  }
+
+  .spd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 600;
+    padding: 5px 8px; border-radius: 5px;
+    background: var(--bg-card); color: var(--text-muted);
+    border: 1px solid var(--border); cursor: pointer;
+    transition: all 0.2s;
+  }
+  .spd:hover, .spd.on {
+    border-color: rgba(0,229,255,0.4); color: var(--cyan);
+  }
+
+  .tile-group {
+    display: flex; gap: 2px;
+    background: var(--bg-card); border-radius: 6px;
+    padding: 2px; border: 1px solid var(--border);
+  }
+
+  .tile-btn {
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px; font-weight: 500;
+    padding: 4px 10px; border-radius: 5px;
+    background: transparent; color: var(--text-muted);
+    border: none; cursor: pointer; transition: all 0.2s;
+  }
+  .tile-btn:hover { color: var(--text-secondary); }
+  .tile-btn.on {
+    background: var(--cyan-dim); color: var(--cyan);
+  }
+
+  /* ===== MAIN ===== */
+  .main {
+    flex: 1; display: flex; flex-direction: column; min-height: 0;
+  }
+
+  /* ===== MAP ===== */
+  .map-wrap {
+    flex: 1; position: relative; min-height: 0;
+  }
+
+  #map {
+    width: 100%; height: 100%; z-index: 1;
+  }
+
+  /* Override Leaflet tile rendering for dark mode */
+  .dark-tiles .leaflet-tile {
+    filter: brightness(0.65) invert(1) contrast(2.8) hue-rotate(200deg) saturate(0.3) brightness(0.8);
+  }
+
+  .satellite-tiles .leaflet-tile {
+    /* no filter for satellite */
+  }
+
+  /* Leaflet controls styling */
+  .leaflet-control-zoom a {
+    background: rgba(6,9,15,0.88) !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--border) !important;
+  }
+
+  /* Overlays */
+  .panel {
+    position: absolute; z-index: 800;
+    background: rgba(6, 9, 15, 0.88);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    pointer-events: auto;
+  }
+
+  .stats-panel {
+    top: 12px; left: 12px;
+    padding: 12px 16px; min-width: 175;
+  }
+
+  .stats-hdr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; font-weight: 600;
+    color: var(--cyan); text-transform: uppercase;
+    letter-spacing: 1px; margin-bottom: 8px;
+  }
+
+  .sr {
+    display: flex; justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .sr:last-child { border: none; }
+
+  .sl { font-size: 11px; color: var(--text-muted); }
+
+  .sv {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 700;
+  }
+
+  .live-panel {
+    top: 12px; right: 12px;
+    padding: 12px 16px; text-align: center;
+  }
+
+  .ldot {
+    display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--green);
+    margin-right: 4px;
+    animation: pls 1.5s ease-in-out infinite;
+  }
+  @keyframes pls {
+    0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(0,230,118,0.4); }
+    50% { opacity:0.6; box-shadow:0 0 0 6px rgba(0,230,118,0); }
+  }
+
+  .llbl {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: var(--green);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .lval {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px; font-weight: 700; margin-top: 2px;
+  }
+
+  .lunit { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+
+  .lgrade {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600; margin-top: 1px;
+  }
+
+  .legend-panel {
+    bottom: 12px; right: 12px;
+    padding: 8px 12px;
+  }
+
+  .leg-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+  }
+
+  .leg-row {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px; color: var(--text-secondary); padding: 1px 0;
+  }
+
+  .leg-swatch { width: 14px; height: 3px; border-radius: 2px; }
+
+  /* ===== INTRO ===== */
+  .intro {
+    position: absolute; inset: 0; z-index: 900;
+    background: rgba(6,9,15,0.7);
+    backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.4s ease;
+  }
+  .intro.gone { opacity: 0; pointer-events: none; }
+
+  .intro-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    border-radius: 18px; padding: 36px;
+    text-align: center; max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .intro-icon { font-size: 44px; margin-bottom: 14px; }
+  .intro-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+
+  .intro-desc {
+    font-size: 13px; color: var(--text-secondary);
+    line-height: 1.6; margin-bottom: 20px;
+  }
+
+  .intro-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  /* ===== ELEVATION ===== */
+  .elev-wrap {
+    height: 165px; background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    position: relative; flex-shrink: 0;
+  }
+
+  .elev-wrap canvas { width: 100%; height: 100%; display: block; }
+
+  .elev-lbl {
+    position: absolute; top: 8px; left: 16px; z-index: 5;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .stats-panel { display: none; }
+    .legend-panel { display: none; }
+    .elev-wrap { height: 130px; }
+    .header { padding: 8px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark">RT</div>
+    <div class="logo-name"><em>Route</em>Tracer</div>
+  </div>
+  <div class="controls" id="controlBar">
+    <div class="btn btn-ghost file-btn">
+      📷 Upload Image
+      <input type="file" id="imgInput" accept="image/*">
+    </div>
+    <div class="btn btn-ghost file-btn">
+      📂 Import GPX
+      <input type="file" id="gpxInput" accept=".gpx,.tcx">
+    </div>
+    <div class="tile-group" id="tileGroup" style="display:none;">
+      <button class="tile-btn on" data-tile="dark">Dark</button>
+      <button class="tile-btn" data-tile="street">Street</button>
+      <button class="tile-btn" data-tile="topo">Topo</button>
+      <button class="tile-btn" data-tile="satellite">Satellite</button>
+    </div>
+    <div class="speed-group" id="speedGroup" style="display:none;">
+      <button class="spd" data-s="0.5">0.5×</button>
+      <button class="spd on" data-s="1">1×</button>
+      <button class="spd" data-s="2">2×</button>
+      <button class="spd" data-s="4">4×</button>
+    </div>
+    <button class="btn btn-primary" id="playBtn" style="display:none;" onclick="togglePlay()">▶ Trace</button>
+    <button class="btn btn-ghost" id="resetBtn" style="display:none;" onclick="resetAll()">↻</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="map-wrap">
+    <div id="map" class="dark-tiles"></div>
+
+    <!-- Intro -->
+    <div class="intro" id="intro">
+      <div class="intro-box">
+        <div class="intro-icon">🚴</div>
+        <div class="intro-title">RouteTracer</div>
+        <div class="intro-desc">
+          Upload a cycling route screenshot, import a GPX file, or run the demo
+          to see animated route tracing with a live elevation profile.
+        </div>
+        <div class="intro-btns">
+          <button class="btn btn-ghost file-btn">
+            📷 Upload
+            <input type="file" accept="image/*" onchange="document.getElementById('imgInput').files=this.files; document.getElementById('imgInput').dispatchEvent(new Event('change'));">
+          </button>
+          <button class="btn btn-ghost file-btn">
+            📂 GPX
+            <input type="file" accept=".gpx,.tcx" onchange="document.getElementById('gpxInput').files=this.files; document.getElementById('gpxInput').dispatchEvent(new Event('change'));">
+          </button>
+          <button class="btn btn-primary" onclick="startDemo()">⚡ Run Demo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panels -->
+    <div class="panel stats-panel" id="statsPanel" style="display:none;">
+      <div class="stats-hdr">Route Stats</div>
+      <div class="sr"><span class="sl">Distance</span><span class="sv" id="sDist" style="color:var(--cyan)">0.0 mi</span></div>
+      <div class="sr"><span class="sl">Elev. Gain</span><span class="sv" id="sGain" style="color:var(--green)">0 ft</span></div>
+      <div class="sr"><span class="sl">Max Elev.</span><span class="sv" id="sMax" style="color:var(--amber)">0 ft</span></div>
+      <div class="sr"><span class="sl">Progress</span><span class="sv" id="sProg" style="color:var(--text-primary)">0%</span></div>
+    </div>
+
+    <div class="panel live-panel" id="livePanel" style="display:none;">
+      <div><span class="ldot"></span><span class="llbl">Elevation</span></div>
+      <div class="lval" id="lElev">0 <span class="lunit">ft</span></div>
+      <div class="lgrade" id="lGrade" style="color:var(--green)">0% grade</div>
+    </div>
+
+    <div class="panel legend-panel" id="legendPanel" style="display:none;">
+      <div class="leg-title">Grade</div>
+      <div class="leg-row"><div class="leg-swatch" style="background:#00e676"></div> &lt; 3% Flat</div>
+      <div class="leg-row"><div class="leg-swatch" style="background:#ffab00"></div> 3–6% Moderate</div>
+      <div class="leg-row"><div class="leg-swatch" style="background:#ff6d00"></div> 6–9% Steep</div>
+      <div class="leg-row"><div class="leg-swatch" style="background:#ff5252"></div> &gt; 9% Very Steep</div>
+    </div>
+  </div>
+
+  <div class="elev-wrap">
+    <div class="elev-lbl">Elevation Profile</div>
+    <canvas id="elevCanvas"></canvas>
+  </div>
+</div>
+
+<script>
+// =============================================
+// LEAFLET MAP INIT
+// =============================================
+const tileUrls = {
+  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  street: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  topo: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+};
+
+const tileAttribs = {
+  dark: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://osm.org/">OSM</a>',
+  street: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>',
+  topo: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> &copy; OSM',
+  satellite: '&copy; <a href="https://www.esri.com/">Esri</a>',
+};
+
+const leafMap = L.map('map', {
+  center: [39.99, -105.23],
+  zoom: 12,
+  zoomControl: false,
+});
+
+L.control.zoom({ position: 'bottomright' }).addTo(leafMap);
+
+let currentTile = 'dark';
+let tileLayer = L.tileLayer(tileUrls.dark, {
+  attribution: tileAttribs.dark,
+  maxZoom: 18,
+}).addTo(leafMap);
+
+function setTileStyle(name) {
+  currentTile = name;
+  leafMap.removeLayer(tileLayer);
+  tileLayer = L.tileLayer(tileUrls[name], {
+    attribution: tileAttribs[name],
+    maxZoom: 18,
+  }).addTo(leafMap);
+
+  const mapEl = document.getElementById('map');
+  mapEl.className = name === 'dark' ? 'dark-tiles' : '';
+
+  document.querySelectorAll('.tile-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.tile === name);
+  });
+}
+
+// =============================================
+// STATE
+// =============================================
+const S = {
+  route: null,       // [[lat, lng, elev_ft], ...]
+  playing: false,
+  progress: 0,
+  speed: 1,
+  lastTs: 0,
+  animId: null,
+  ghostLine: null,
+  activeSegments: [],
+  marker: null,
+  startMark: null,
+  endMark: null,
+  totalDistMi: 0,
+};
+
+// =============================================
+// GRADE COLOR
+// =============================================
+function gc(grade) {
+  const a = Math.abs(grade);
+  if (a < 3) return '#00e676';
+  if (a < 6) return '#ffab00';
+  if (a < 9) return '#ff6d00';
+  return '#ff5252';
+}
+
+// =============================================
+// HAVERSINE DISTANCE (miles)
+// =============================================
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// =============================================
+// DEMO ROUTE — Louisville/Boulder/Lefthand Canyon
+// =============================================
+function demoRoute() {
+  const wp = [
+    [39.9778,-105.132,5370],[39.981,-105.138,5390],[39.985,-105.145,5410],
+    [39.987,-105.155,5430],[39.989,-105.168,5460],[39.991,-105.18,5500],
+    [39.993,-105.195,5540],[39.994,-105.21,5580],[39.996,-105.22,5600],
+    [39.998,-105.235,5620],[40.001,-105.245,5650],[40.006,-105.255,5700],
+    [40.012,-105.262,5750],[40.018,-105.268,5800],[40.025,-105.272,5860],
+    [40.032,-105.275,5920],[40.038,-105.277,5950],[40.044,-105.28,5980],
+    [40.05,-105.283,6020],[40.057,-105.285,6100],[40.064,-105.287,6200],
+    [40.07,-105.29,6350],[40.076,-105.294,6520],[40.082,-105.298,6700],
+    [40.087,-105.303,6900],[40.091,-105.308,7100],[40.094,-105.314,7280],
+    [40.096,-105.32,7420],[40.097,-105.326,7500],[40.098,-105.331,7560],
+    [40.097,-105.335,7580],[40.095,-105.338,7550],[40.091,-105.336,7400],
+    [40.086,-105.332,7200],[40.08,-105.327,7000],[40.074,-105.321,6800],
+    [40.068,-105.315,6600],[40.062,-105.308,6400],[40.056,-105.3,6200],
+    [40.05,-105.292,6050],[40.044,-105.285,5950],[40.038,-105.279,5880],
+    [40.031,-105.274,5830],[40.024,-105.27,5790],[40.017,-105.265,5750],
+    [40.011,-105.258,5700],[40.006,-105.249,5660],[40.002,-105.238,5630],
+    [39.998,-105.226,5600],[39.995,-105.214,5570],[39.993,-105.202,5540],
+    [39.991,-105.19,5510],[39.989,-105.178,5480],[39.987,-105.166,5450],
+    [39.985,-105.154,5420],[39.982,-105.142,5390],[39.979,-105.135,5375],
+    [39.9778,-105.132,5370],
+  ];
+
+  // Interpolate
+  const route = [];
+  for (let i = 0; i < wp.length - 1; i++) {
+    const a = wp[i], b = wp[i+1];
+    for (let s = 0; s < 6; s++) {
+      const t = s / 6;
+      route.push([
+        a[0]+(b[0]-a[0])*t,
+        a[1]+(b[1]-a[1])*t,
+        a[2]+(b[2]-a[2])*t,
+      ]);
+    }
+  }
+  route.push(wp[wp.length-1]);
+  return route;
+}
+
+// =============================================
+// COMPUTE TOTAL DISTANCE
+// =============================================
+function computeTotalDist(route) {
+  let d = 0;
+  for (let i = 1; i < route.length; i++) {
+    d += haversine(route[i-1][0], route[i-1][1], route[i][0], route[i][1]);
+  }
+  return d;
+}
+
+// =============================================
+// GPX PARSER
+// =============================================
+function parseGPX(text) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'text/xml');
+  const pts = doc.querySelectorAll('trkpt, rtept');
+  const route = [];
+  pts.forEach(pt => {
+    const lat = parseFloat(pt.getAttribute('lat'));
+    const lng = parseFloat(pt.getAttribute('lon'));
+    const eleNode = pt.querySelector('ele');
+    const elev = eleNode ? parseFloat(eleNode.textContent) * 3.28084 : 0; // meters to feet
+    if (!isNaN(lat) && !isNaN(lng)) route.push([lat, lng, elev]);
+  });
+  return route;
+}
+
+// =============================================
+// LOAD ROUTE INTO MAP
+// =============================================
+function loadRoute(route) {
+  S.route = route;
+  S.progress = 0;
+  S.playing = false;
+  S.totalDistMi = computeTotalDist(route);
+
+  // Clear previous
+  clearMapLayers();
+
+  // Ghost line
+  const ghostCoords = route.map(p => [p[0], p[1]]);
+  S.ghostLine = L.polyline(ghostCoords, {
+    color: '#ffffff', opacity: 0.12, weight: 3,
+    dashArray: '8 6',
+  }).addTo(leafMap);
+
+  // Start marker
+  const startIcon = L.divIcon({
+    className: '',
+    html: `<div style="width:22px;height:22px;border-radius:50%;background:#00e676;border:3px solid #0b1120;display:flex;align-items:center;justify-content:center;font:bold 10px 'JetBrains Mono',monospace;color:#0b1120;">S</div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+  S.startMark = L.marker([route[0][0], route[0][1]], { icon: startIcon }).addTo(leafMap);
+
+  // Current position marker
+  const dotIcon = L.divIcon({
+    className: '',
+    html: `<div style="width:14px;height:14px;border-radius:50%;background:#00e5ff;border:3px solid #0b1120;box-shadow:0 0 12px rgba(0,229,255,0.6);"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+  S.marker = L.marker([route[0][0], route[0][1]], { icon: dotIcon, zIndexOffset: 1000 }).addTo(leafMap);
+
+  // Fit bounds
+  leafMap.fitBounds(S.ghostLine.getBounds(), { padding: [40, 40] });
+
+  // Show UI
+  document.getElementById('intro').classList.add('gone');
+  ['tileGroup','speedGroup','playBtn','resetBtn','statsPanel','livePanel','legendPanel'].forEach(id => {
+    document.getElementById(id).style.display = '';
+  });
+
+  drawElevation();
+  updateStats();
+}
+
+function clearMapLayers() {
+  if (S.ghostLine) { leafMap.removeLayer(S.ghostLine); S.ghostLine = null; }
+  if (S.marker) { leafMap.removeLayer(S.marker); S.marker = null; }
+  if (S.startMark) { leafMap.removeLayer(S.startMark); S.startMark = null; }
+  if (S.endMark) { leafMap.removeLayer(S.endMark); S.endMark = null; }
+  S.activeSegments.forEach(seg => leafMap.removeLayer(seg));
+  S.activeSegments = [];
+}
+
+// =============================================
+// ANIMATION
+// =============================================
+function updateActiveRoute() {
+  const route = S.route;
+  const idx = Math.floor(S.progress * (route.length - 1));
+
+  // Only add new segments since last frame
+  const existingCount = S.activeSegments.length;
+  for (let i = existingCount; i < idx; i++) {
+    // Compute grade
+    const dMi = haversine(route[i][0], route[i][1], route[i+1][0], route[i+1][1]);
+    const dFt = dMi * 5280;
+    const eDiff = route[i+1][2] - route[i][2];
+    const grade = dFt > 0 ? (eDiff / dFt) * 100 : 0;
+
+    const seg = L.polyline(
+      [[route[i][0], route[i][1]], [route[i+1][0], route[i+1][1]]],
+      { color: gc(grade), weight: 5, opacity: 0.9, lineCap: 'round' }
+    ).addTo(leafMap);
+
+    S.activeSegments.push(seg);
+  }
+
+  // Move marker
+  if (S.marker) {
+    S.marker.setLatLng([route[idx][0], route[idx][1]]);
+  }
+}
+
+function animate(ts) {
+  if (!S.playing) return;
+  if (!S.lastTs) S.lastTs = ts;
+  const dt = ts - S.lastTs;
+  S.lastTs = ts;
+
+  S.progress = Math.min(1, S.progress + (dt / 20000) * S.speed);
+
+  updateActiveRoute();
+  drawElevation();
+  updateStats();
+
+  // Pan to follow
+  const idx = Math.floor(S.progress * (S.route.length - 1));
+  leafMap.panTo([S.route[idx][0], S.route[idx][1]], { animate: true, duration: 0.3 });
+
+  if (S.progress < 1) {
+    S.animId = requestAnimationFrame(animate);
+  } else {
+    S.playing = false;
+    addEndMarker();
+    document.getElementById('playBtn').innerHTML = '↻ Replay';
+  }
+}
+
+function addEndMarker() {
+  const p = S.route[S.route.length - 1];
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="width:22px;height:22px;border-radius:50%;background:#ff5252;border:3px solid #0b1120;display:flex;align-items:center;justify-content:center;font:bold 10px 'JetBrains Mono',monospace;color:#0b1120;">F</div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+  S.endMark = L.marker([p[0], p[1]], { icon: icon }).addTo(leafMap);
+}
+
+function togglePlay() {
+  if (!S.route) return;
+  if (S.progress >= 1) {
+    // Clear and restart
+    S.activeSegments.forEach(seg => leafMap.removeLayer(seg));
+    S.activeSegments = [];
+    if (S.endMark) { leafMap.removeLayer(S.endMark); S.endMark = null; }
+    S.progress = 0;
+    S.lastTs = 0;
+    leafMap.fitBounds(S.ghostLine.getBounds(), { padding: [40, 40] });
+    setTimeout(() => {
+      S.playing = true;
+      document.getElementById('playBtn').innerHTML = '⏸ Pause';
+      S.animId = requestAnimationFrame(animate);
+    }, 500);
+    return;
+  }
+  if (S.playing) {
+    S.playing = false;
+    cancelAnimationFrame(S.animId);
+    document.getElementById('playBtn').innerHTML = '▶ Resume';
+  } else {
+    S.playing = true;
+    S.lastTs = 0;
+    document.getElementById('playBtn').innerHTML = '⏸ Pause';
+    S.animId = requestAnimationFrame(animate);
+  }
+}
+
+function resetAll() {
+  S.playing = false;
+  cancelAnimationFrame(S.animId);
+  S.progress = 0;
+  S.activeSegments.forEach(seg => leafMap.removeLayer(seg));
+  S.activeSegments = [];
+  if (S.endMark) { leafMap.removeLayer(S.endMark); S.endMark = null; }
+  if (S.marker) S.marker.setLatLng([S.route[0][0], S.route[0][1]]);
+  leafMap.fitBounds(S.ghostLine.getBounds(), { padding: [40, 40] });
+  document.getElementById('playBtn').innerHTML = '▶ Trace';
+  drawElevation();
+  updateStats();
+}
+
+// =============================================
+// STATS
+// =============================================
+function updateStats() {
+  const route = S.route;
+  if (!route) return;
+  const idx = Math.floor(S.progress * (route.length - 1));
+
+  // Distance
+  let dist = 0;
+  for (let i = 1; i <= idx; i++) {
+    dist += haversine(route[i-1][0], route[i-1][1], route[i][0], route[i][1]);
+  }
+  document.getElementById('sDist').textContent = dist.toFixed(1) + ' mi';
+
+  // Gain
+  let gain = 0;
+  for (let i = 1; i <= idx; i++) {
+    const d = route[i][2] - route[i-1][2];
+    if (d > 0) gain += d;
+  }
+  document.getElementById('sGain').textContent = Math.round(gain) + ' ft';
+
+  // Max
+  const mx = Math.max(...route.slice(0, idx+1).map(p => p[2]));
+  document.getElementById('sMax').textContent = Math.round(mx) + ' ft';
+
+  // Progress
+  document.getElementById('sProg').textContent = Math.round(S.progress * 100) + '%';
+
+  // Live
+  const elev = route[idx][2];
+  document.getElementById('lElev').innerHTML = Math.round(elev) + ' <span class="lunit">ft</span>';
+
+  let grade = 0;
+  if (idx > 0) {
+    const dMi = haversine(route[idx-1][0], route[idx-1][1], route[idx][0], route[idx][1]);
+    const dFt = dMi * 5280;
+    const eDiff = route[idx][2] - route[idx-1][2];
+    grade = dFt > 0 ? (eDiff / dFt) * 100 : 0;
+  }
+  const gEl = document.getElementById('lGrade');
+  gEl.textContent = (grade >= 0 ? '+' : '') + grade.toFixed(1) + '% grade';
+  gEl.style.color = gc(grade);
+}
+
+// =============================================
+// ELEVATION CANVAS
+// =============================================
+const eCanvas = document.getElementById('elevCanvas');
+const eCtx = eCanvas.getContext('2d');
+
+function drawElevation() {
+  const route = S.route;
+  if (!route) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = eCanvas.parentElement.getBoundingClientRect();
+  eCanvas.width = rect.width * dpr;
+  eCanvas.height = rect.height * dpr;
+  eCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const w = rect.width, h = rect.height;
+  const pL = 52, pR = 12, pT = 28, pB = 22;
+  const cW = w - pL - pR, cH = h - pT - pB;
+
+  eCtx.clearRect(0, 0, w, h);
+
+  const elevs = route.map(p => p[2]);
+  const minE = Math.min(...elevs) - 80;
+  const maxE = Math.max(...elevs) + 80;
+  const idx = Math.floor(S.progress * (route.length - 1));
+
+  // Y axis
+  eCtx.font = '500 10px "JetBrains Mono", monospace';
+  eCtx.fillStyle = '#3d4f6e';
+  eCtx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const e = minE + (maxE - minE) * (1 - i / 4);
+    const yy = pT + (i / 4) * cH;
+    eCtx.fillText(Math.round(e) + "'", pL - 8, yy + 3);
+    eCtx.beginPath();
+    eCtx.strokeStyle = 'rgba(255,255,255,0.04)';
+    eCtx.lineWidth = 1;
+    eCtx.moveTo(pL, yy);
+    eCtx.lineTo(w - pR, yy);
+    eCtx.stroke();
+  }
+
+  // Ghost
+  eCtx.beginPath();
+  eCtx.strokeStyle = 'rgba(255,255,255,0.07)';
+  eCtx.lineWidth = 1.5;
+  for (let i = 0; i < route.length; i++) {
+    const xx = pL + (i / (route.length - 1)) * cW;
+    const yy = pT + (1 - (route[i][2] - minE) / (maxE - minE)) * cH;
+    i === 0 ? eCtx.moveTo(xx, yy) : eCtx.lineTo(xx, yy);
+  }
+  eCtx.stroke();
+
+  if (idx > 0) {
+    // Fill
+    const grad = eCtx.createLinearGradient(0, pT, 0, pT + cH);
+    grad.addColorStop(0, 'rgba(0,229,255,0.15)');
+    grad.addColorStop(1, 'rgba(0,229,255,0)');
+    eCtx.beginPath();
+    eCtx.moveTo(pL, pT + cH);
+    for (let i = 0; i <= idx; i++) {
+      const xx = pL + (i / (route.length - 1)) * cW;
+      const yy = pT + (1 - (route[i][2] - minE) / (maxE - minE)) * cH;
+      eCtx.lineTo(xx, yy);
+    }
+    eCtx.lineTo(pL + (idx / (route.length - 1)) * cW, pT + cH);
+    eCtx.closePath();
+    eCtx.fillStyle = grad;
+    eCtx.fill();
+
+    // Colored segments
+    for (let i = 0; i < idx; i++) {
+      const x1 = pL + (i / (route.length - 1)) * cW;
+      const y1 = pT + (1 - (route[i][2] - minE) / (maxE - minE)) * cH;
+      const x2 = pL + ((i+1) / (route.length - 1)) * cW;
+      const y2 = pT + (1 - (route[i+1][2] - minE) / (maxE - minE)) * cH;
+      eCtx.beginPath();
+      eCtx.strokeStyle = gc((route[i+1][2] - route[i][2]) * 1.5);
+      eCtx.lineWidth = 2.5;
+      eCtx.lineCap = 'round';
+      eCtx.moveTo(x1, y1);
+      eCtx.lineTo(x2, y2);
+      eCtx.stroke();
+    }
+
+    // Cursor
+    if (S.progress < 1) {
+      const cx = pL + (idx / (route.length - 1)) * cW;
+      const cy = pT + (1 - (route[idx][2] - minE) / (maxE - minE)) * cH;
+      eCtx.beginPath();
+      eCtx.strokeStyle = 'rgba(0,229,255,0.3)';
+      eCtx.lineWidth = 1;
+      eCtx.setLineDash([3, 3]);
+      eCtx.moveTo(cx, pT);
+      eCtx.lineTo(cx, pT + cH);
+      eCtx.stroke();
+      eCtx.setLineDash([]);
+      eCtx.beginPath();
+      eCtx.arc(cx, cy, 4, 0, Math.PI * 2);
+      eCtx.fillStyle = '#00e5ff';
+      eCtx.fill();
+      eCtx.strokeStyle = '#0b1120';
+      eCtx.lineWidth = 2;
+      eCtx.stroke();
+    }
+  }
+
+  // X axis
+  eCtx.font = '500 10px "JetBrains Mono", monospace';
+  eCtx.fillStyle = '#3d4f6e';
+  eCtx.textAlign = 'center';
+  const totalMi = Math.round(S.totalDistMi);
+  const step = totalMi > 30 ? 10 : totalMi > 10 ? 5 : 2;
+  for (let m = 0; m <= totalMi; m += step) {
+    const xx = pL + (m / totalMi) * cW;
+    eCtx.fillText(m + ' mi', xx, pT + cH + 16);
+  }
+}
+
+window.addEventListener('resize', () => { if (S.route) drawElevation(); });
+
+// =============================================
+// EVENT HANDLERS
+// =============================================
+function startDemo() {
+  loadRoute(demoRoute());
+  setTimeout(() => togglePlay(), 800);
+}
+
+// Speed
+document.querySelectorAll('.spd').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.spd').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    S.speed = parseFloat(b.dataset.s);
+  });
+});
+
+// Tiles
+document.querySelectorAll('.tile-btn').forEach(b => {
+  b.addEventListener('click', () => setTileStyle(b.dataset.tile));
+});
+
+// Image upload
+document.getElementById('imgInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  // For now, load demo route — in production, this sends to AI Vision API
+  alert('Image received: "' + file.name + '"\n\nIn production, this image would be sent to the AI Vision API to extract the route. For now, loading the demo route as a placeholder.');
+  loadRoute(demoRoute());
+});
+
+// GPX import
+document.getElementById('gpxInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const route = parseGPX(ev.target.result);
+      if (route.length < 2) {
+        alert('Could not parse route from this file. Please try a different GPX/TCX file.');
+        return;
+      }
+      loadRoute(route);
+    } catch (err) {
+      alert('Error parsing file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+});
+</script>
+</body>
+</html>
