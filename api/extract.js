@@ -1,3 +1,12 @@
+// Vercel config: increase body size limit to 10MB
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,7 +23,7 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
+    return res.status(500).json({ error: 'API key not configured. Add ANTHROPIC_API_KEY in Vercel Environment Variables.' });
   }
 
   try {
@@ -23,6 +32,8 @@ export default async function handler(req, res) {
     if (!image) {
       return res.status(400).json({ error: 'No image provided' });
     }
+
+    console.log('Received image, base64 length:', image.length, 'mediaType:', mediaType);
 
     // Call Claude Vision API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -67,8 +78,7 @@ IMPORTANT: You must respond with ONLY a valid JSON object, no other text. The fo
   "notes": "Brief description of what you see in the image",
   "waypoints": [
     [latitude, longitude, elevation_in_feet],
-    [latitude, longitude, elevation_in_feet],
-    ...
+    [latitude, longitude, elevation_in_feet]
   ]
 }
 
@@ -89,15 +99,15 @@ RULES:
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Anthropic API error:', errText);
-      return res.status(response.status).json({ 
-        error: 'AI API error', 
-        details: errText 
+      console.error('Anthropic API error:', response.status, errText);
+      return res.status(response.status).json({
+        error: 'AI API error (status ' + response.status + ')',
+        details: errText.substring(0, 300),
       });
     }
 
     const data = await response.json();
-    
+
     // Extract the text content from Claude's response
     const textContent = data.content.find(c => c.type === 'text');
     if (!textContent) {
@@ -113,8 +123,8 @@ RULES:
       }
       routeData = JSON.parse(cleaned);
     } catch (parseErr) {
-      console.error('Failed to parse AI response:', textContent.text);
-      return res.status(500).json({ 
+      console.error('Failed to parse AI response:', textContent.text.substring(0, 500));
+      return res.status(500).json({
         error: 'Failed to parse route data from AI response',
         raw: textContent.text.substring(0, 500),
       });
@@ -122,7 +132,7 @@ RULES:
 
     // Validate the response has waypoints
     if (!routeData.waypoints || !Array.isArray(routeData.waypoints) || routeData.waypoints.length < 2) {
-      return res.status(422).json({ 
+      return res.status(422).json({
         error: 'AI could not extract a valid route from this image',
         notes: routeData.notes || 'No details available',
       });
@@ -147,6 +157,8 @@ RULES:
       interpolated.push(waypoints[waypoints.length - 1]);
       waypoints = interpolated;
     }
+
+    console.log('Route extracted:', routeData.route_name, waypoints.length, 'waypoints');
 
     return res.status(200).json({
       route_name: routeData.route_name || 'Extracted Route',
