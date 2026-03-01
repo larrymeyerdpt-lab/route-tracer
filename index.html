@@ -594,14 +594,14 @@ async function extractRouteFromImage(file) {
 
   try {
     // Convert any image (including HEIC) to JPEG via canvas
-    // This fixes iOS Safari HEIC issues and compresses for API
+    // Resize aggressively to stay under Vercel's 4.5MB body limit
     const { base64, mediaType } = await new Promise((resolve, reject) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
-        // Resize if very large (max 2000px on longest side)
+        // Resize to max 1200px (Claude Vision works fine at this size)
         let w = img.naturalWidth, h = img.naturalHeight;
-        const maxDim = 2000;
+        const maxDim = 1200;
         if (w > maxDim || h > maxDim) {
           const scale = maxDim / Math.max(w, h);
           w = Math.round(w * scale);
@@ -613,8 +613,10 @@ async function extractRouteFromImage(file) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
         URL.revokeObjectURL(url);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        // Use 0.7 quality — keeps it well under 4.5MB
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         const b64 = dataUrl.split(',')[1];
+        console.log('Image prepared:', w + 'x' + h, 'base64 size:', Math.round(b64.length / 1024) + 'KB');
         resolve({ base64: b64, mediaType: 'image/jpeg' });
       };
       img.onerror = () => {
@@ -629,14 +631,35 @@ async function extractRouteFromImage(file) {
       'Claude Vision is reading roads, landmarks, and coordinates'
     );
 
-    // Send to our serverless function
-    const resp = await fetch('/api/extract', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: base64, mediaType }),
-    });
+    // Send to our serverless function (with 60s timeout for AI processing)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
 
-    const data = await resp.json();
+    let resp;
+    try {
+      resp = await fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, mediaType }),
+        signal: controller.signal,
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeout);
+      if (fetchErr.name === 'AbortError') {
+        throw new Error('Request timed out. Try a simpler route image.');
+      }
+      throw new Error('Network error — check your connection and try again.');
+    }
+    clearTimeout(timeout);
+
+    let data;
+    try {
+      data = await resp.json();
+    } catch (jsonErr) {
+      const text = await resp.text().catch(() => 'No response body');
+      console.error('Non-JSON response:', resp.status, text);
+      throw new Error('Server error (status ' + resp.status + '). Check Vercel function logs.');
+    }
 
     if (!resp.ok) {
       throw new Error(data.error || 'Failed to extract route');
