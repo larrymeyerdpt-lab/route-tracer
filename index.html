@@ -340,11 +340,11 @@
   <div class="controls" id="controlBar">
     <div class="btn btn-ghost file-btn">
       📷 Upload Image
-      <input type="file" id="imgInput" accept="image/*">
+      <input type="file" id="imgInput" accept="image/*" onchange="handleImageUpload(this.files)">
     </div>
     <div class="btn btn-ghost file-btn">
       📂 Import GPX
-      <input type="file" id="gpxInput" accept=".gpx,.tcx">
+      <input type="file" id="gpxInput" accept=".gpx,.tcx" onchange="handleGPXUpload(this.files)">
     </div>
     <div class="tile-group" id="tileGroup" style="display:none;">
       <button class="tile-btn on" data-tile="dark">Dark</button>
@@ -379,11 +379,11 @@
         <div class="intro-btns">
           <button class="btn btn-ghost file-btn">
             📷 Upload Image
-            <input type="file" accept="image/*" onchange="document.getElementById('imgInput').files=this.files; document.getElementById('imgInput').dispatchEvent(new Event('change'));">
+            <input type="file" accept="image/*" onchange="handleImageUpload(this.files)">
           </button>
           <button class="btn btn-ghost file-btn">
             📂 Import GPX
-            <input type="file" accept=".gpx,.tcx" onchange="document.getElementById('gpxInput').files=this.files; document.getElementById('gpxInput').dispatchEvent(new Event('change'));">
+            <input type="file" accept=".gpx,.tcx" onchange="handleGPXUpload(this.files)">
           </button>
           <button class="btn btn-primary" onclick="startDemo()">⚡ Run Demo</button>
         </div>
@@ -990,21 +990,19 @@ document.querySelectorAll('.tile-btn').forEach(b => {
   b.addEventListener('click', () => setTileStyle(b.dataset.tile));
 });
 
-// Image upload → AI extraction
-document.getElementById('imgInput').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
+// Shared upload handlers (used by both header and intro buttons)
+async function handleImageUpload(files) {
+  const file = files[0];
   if (!file) return;
-
   const waypoints = await extractRouteFromImage(file);
   if (waypoints && waypoints.length >= 2) {
     loadRoute(waypoints);
     setTimeout(() => togglePlay(), 800);
   }
-});
+}
 
-// GPX import
-document.getElementById('gpxInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
+function handleGPXUpload(files) {
+  const file = files[0];
   if (!file) return;
   S.routeMeta = null;
   document.getElementById('routeInfo').style.display = 'none';
@@ -1022,7 +1020,13 @@ document.getElementById('gpxInput').addEventListener('change', (e) => {
     }
   };
   reader.readAsText(file);
-});
+}
+
+// Image upload → AI extraction
+document.getElementById('imgInput').addEventListener('change', (e) => handleImageUpload(e.target.files));
+
+// GPX import
+document.getElementById('gpxInput').addEventListener('change', (e) => handleGPXUpload(e.target.files));
 </script>
 </body>
 </html>
