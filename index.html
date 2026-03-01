@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RouteTracer — Cycling Route Visualizer</title>
 
-<!-- Leaflet CSS + JS from unpkg (free CDN) -->
+<!-- Leaflet CSS + JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -25,6 +25,7 @@
     --green: #00e676;
     --green-dim: rgba(0, 230, 118, 0.1);
     --amber: #ffab00;
+    --orange: #ff6d00;
     --red: #ff5252;
     --border: rgba(255,255,255,0.06);
     --border-bright: rgba(255,255,255,0.1);
@@ -44,7 +45,7 @@
 
   /* ===== HEADER ===== */
   .header {
-    padding: 10px 20px;
+    padding: 10px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -103,16 +104,12 @@
   }
   .btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); }
 
-  .file-btn {
-    position: relative; overflow: hidden;
-  }
+  .file-btn { position: relative; overflow: hidden; }
   .file-btn input[type="file"] {
     position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0;
   }
 
-  .speed-group {
-    display: flex; gap: 2px;
-  }
+  .speed-group { display: flex; gap: 2px; }
 
   .spd {
     font-family: 'JetBrains Mono', monospace;
@@ -140,41 +137,26 @@
     border: none; cursor: pointer; transition: all 0.2s;
   }
   .tile-btn:hover { color: var(--text-secondary); }
-  .tile-btn.on {
-    background: var(--cyan-dim); color: var(--cyan);
-  }
+  .tile-btn.on { background: var(--cyan-dim); color: var(--cyan); }
 
   /* ===== MAIN ===== */
-  .main {
-    flex: 1; display: flex; flex-direction: column; min-height: 0;
-  }
+  .main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
-  /* ===== MAP ===== */
-  .map-wrap {
-    flex: 1; position: relative; min-height: 0;
-  }
+  .map-wrap { flex: 1; position: relative; min-height: 0; }
 
-  #map {
-    width: 100%; height: 100%; z-index: 1;
-  }
+  #map { width: 100%; height: 100%; z-index: 1; }
 
-  /* Override Leaflet tile rendering for dark mode */
   .dark-tiles .leaflet-tile {
     filter: brightness(0.65) invert(1) contrast(2.8) hue-rotate(200deg) saturate(0.3) brightness(0.8);
   }
 
-  .satellite-tiles .leaflet-tile {
-    /* no filter for satellite */
-  }
-
-  /* Leaflet controls styling */
   .leaflet-control-zoom a {
     background: rgba(6,9,15,0.88) !important;
     color: var(--text-secondary) !important;
     border-color: var(--border) !important;
   }
 
-  /* Overlays */
+  /* ===== OVERLAYS ===== */
   .panel {
     position: absolute; z-index: 800;
     background: rgba(6, 9, 15, 0.88);
@@ -184,37 +166,25 @@
     pointer-events: auto;
   }
 
-  .stats-panel {
-    top: 12px; left: 12px;
-    padding: 12px 16px; min-width: 175;
-  }
-
+  .stats-panel { top: 12px; left: 12px; padding: 12px 16px; min-width: 175px; }
   .stats-hdr {
     font-family: 'JetBrains Mono', monospace;
     font-size: 9px; font-weight: 600;
     color: var(--cyan); text-transform: uppercase;
     letter-spacing: 1px; margin-bottom: 8px;
   }
-
   .sr {
     display: flex; justify-content: space-between;
-    padding: 3px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
+    padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
   }
   .sr:last-child { border: none; }
-
   .sl { font-size: 11px; color: var(--text-muted); }
-
   .sv {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px; font-weight: 700;
   }
 
-  .live-panel {
-    top: 12px; right: 12px;
-    padding: 12px 16px; text-align: center;
-  }
-
+  .live-panel { top: 12px; right: 12px; padding: 12px 16px; text-align: center; }
   .ldot {
     display: inline-block; width: 7px; height: 7px;
     border-radius: 50%; background: var(--green);
@@ -225,42 +195,79 @@
     0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(0,230,118,0.4); }
     50% { opacity:0.6; box-shadow:0 0 0 6px rgba(0,230,118,0); }
   }
-
   .llbl {
     font-family: 'JetBrains Mono', monospace;
     font-size: 9px; color: var(--green);
     text-transform: uppercase; letter-spacing: 1px;
   }
-
   .lval {
     font-family: 'JetBrains Mono', monospace;
     font-size: 24px; font-weight: 700; margin-top: 2px;
   }
-
   .lunit { font-size: 11px; color: var(--text-muted); font-weight: 400; }
-
   .lgrade {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px; font-weight: 600; margin-top: 1px;
   }
 
-  .legend-panel {
-    bottom: 12px; right: 12px;
-    padding: 8px 12px;
-  }
-
+  .legend-panel { bottom: 12px; right: 12px; padding: 8px 12px; }
   .leg-title {
     font-family: 'JetBrains Mono', monospace;
     font-size: 8px; color: var(--text-muted);
     text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
   }
-
   .leg-row {
     display: flex; align-items: center; gap: 5px;
     font-size: 10px; color: var(--text-secondary); padding: 1px 0;
   }
-
   .leg-swatch { width: 14px; height: 3px; border-radius: 2px; }
+
+  /* Route info badge */
+  .route-info {
+    bottom: 12px; left: 12px;
+    padding: 10px 14px; max-width: 260px;
+  }
+  .ri-name {
+    font-weight: 700; font-size: 13px; margin-bottom: 3px;
+    color: var(--cyan);
+  }
+  .ri-loc { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+  .ri-conf {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+  }
+  .ri-conf em {
+    font-style: normal; font-weight: 700;
+  }
+
+  /* ===== LOADING OVERLAY ===== */
+  .loading-overlay {
+    position: absolute; inset: 0; z-index: 950;
+    background: rgba(6,9,15,0.85);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    transition: opacity 0.3s;
+  }
+  .loading-overlay.gone { opacity: 0; pointer-events: none; }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 14px; color: var(--text-secondary);
+    text-align: center; max-width: 280px; line-height: 1.5;
+  }
+  .loading-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+  }
 
   /* ===== INTRO ===== */
   .intro {
@@ -271,24 +278,33 @@
     transition: opacity 0.4s ease;
   }
   .intro.gone { opacity: 0; pointer-events: none; }
-
   .intro-box {
     background: var(--bg-card);
     border: 1px solid var(--border-bright);
     border-radius: 18px; padding: 36px;
-    text-align: center; max-width: 380px;
+    text-align: center; max-width: 400px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
-
   .intro-icon { font-size: 44px; margin-bottom: 14px; }
-  .intro-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-
+  .intro-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
   .intro-desc {
     font-size: 13px; color: var(--text-secondary);
-    line-height: 1.6; margin-bottom: 20px;
+    line-height: 1.6; margin-bottom: 22px;
   }
-
   .intro-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  /* ===== ERROR TOAST ===== */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%); z-index: 9999;
+    background: #2d1418; border: 1px solid rgba(255,82,82,0.3);
+    color: var(--red); padding: 12px 20px;
+    border-radius: 10px; font-size: 13px;
+    max-width: 400px; text-align: center;
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; pointer-events: auto; }
 
   /* ===== ELEVATION ===== */
   .elev-wrap {
@@ -296,9 +312,7 @@
     border-top: 1px solid var(--border);
     position: relative; flex-shrink: 0;
   }
-
   .elev-wrap canvas { width: 100%; height: 100%; display: block; }
-
   .elev-lbl {
     position: absolute; top: 8px; left: 16px; z-index: 5;
     font-family: 'JetBrains Mono', monospace;
@@ -308,8 +322,9 @@
 
   /* Responsive */
   @media (max-width: 640px) {
-    .stats-panel { display: none; }
+    .stats-panel { top: auto; bottom: 12px; left: 12px; }
     .legend-panel { display: none; }
+    .route-info { display: none; }
     .elev-wrap { height: 130px; }
     .header { padding: 8px 12px; }
   }
@@ -358,21 +373,28 @@
         <div class="intro-icon">🚴</div>
         <div class="intro-title">RouteTracer</div>
         <div class="intro-desc">
-          Upload a cycling route screenshot, import a GPX file, or run the demo
-          to see animated route tracing with a live elevation profile.
+          Upload a cycling route screenshot and AI will extract the route,
+          or import a GPX file. Watch it trace on a real map with a live elevation profile.
         </div>
         <div class="intro-btns">
           <button class="btn btn-ghost file-btn">
-            📷 Upload
+            📷 Upload Image
             <input type="file" accept="image/*" onchange="document.getElementById('imgInput').files=this.files; document.getElementById('imgInput').dispatchEvent(new Event('change'));">
           </button>
           <button class="btn btn-ghost file-btn">
-            📂 GPX
+            📂 Import GPX
             <input type="file" accept=".gpx,.tcx" onchange="document.getElementById('gpxInput').files=this.files; document.getElementById('gpxInput').dispatchEvent(new Event('change'));">
           </button>
           <button class="btn btn-primary" onclick="startDemo()">⚡ Run Demo</button>
         </div>
       </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay gone" id="loadingOverlay">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">Analyzing route image...</div>
+      <div class="loading-sub" id="loadingSub">Claude Vision is reading roads, landmarks, and coordinates</div>
     </div>
 
     <!-- Panels -->
@@ -397,6 +419,12 @@
       <div class="leg-row"><div class="leg-swatch" style="background:#ff6d00"></div> 6–9% Steep</div>
       <div class="leg-row"><div class="leg-swatch" style="background:#ff5252"></div> &gt; 9% Very Steep</div>
     </div>
+
+    <div class="panel route-info" id="routeInfo" style="display:none;">
+      <div class="ri-name" id="riName"></div>
+      <div class="ri-loc" id="riLoc"></div>
+      <div class="ri-conf" id="riConf"></div>
+    </div>
   </div>
 
   <div class="elev-wrap">
@@ -404,6 +432,9 @@
     <canvas id="elevCanvas"></canvas>
   </div>
 </div>
+
+<!-- Error toast -->
+<div class="toast" id="toast"></div>
 
 <script>
 // =============================================
@@ -415,7 +446,6 @@ const tileUrls = {
   topo: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
 };
-
 const tileAttribs = {
   dark: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://osm.org/">OSM</a>',
   street: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>',
@@ -423,41 +453,25 @@ const tileAttribs = {
   satellite: '&copy; <a href="https://www.esri.com/">Esri</a>',
 };
 
-const leafMap = L.map('map', {
-  center: [39.99, -105.23],
-  zoom: 12,
-  zoomControl: false,
-});
-
+const leafMap = L.map('map', { center: [39.99, -105.23], zoom: 12, zoomControl: false });
 L.control.zoom({ position: 'bottomright' }).addTo(leafMap);
 
 let currentTile = 'dark';
-let tileLayer = L.tileLayer(tileUrls.dark, {
-  attribution: tileAttribs.dark,
-  maxZoom: 18,
-}).addTo(leafMap);
+let tileLayer = L.tileLayer(tileUrls.dark, { attribution: tileAttribs.dark, maxZoom: 18 }).addTo(leafMap);
 
 function setTileStyle(name) {
   currentTile = name;
   leafMap.removeLayer(tileLayer);
-  tileLayer = L.tileLayer(tileUrls[name], {
-    attribution: tileAttribs[name],
-    maxZoom: 18,
-  }).addTo(leafMap);
-
-  const mapEl = document.getElementById('map');
-  mapEl.className = name === 'dark' ? 'dark-tiles' : '';
-
-  document.querySelectorAll('.tile-btn').forEach(b => {
-    b.classList.toggle('on', b.dataset.tile === name);
-  });
+  tileLayer = L.tileLayer(tileUrls[name], { attribution: tileAttribs[name], maxZoom: 18 }).addTo(leafMap);
+  document.getElementById('map').className = name === 'dark' ? 'dark-tiles' : '';
+  document.querySelectorAll('.tile-btn').forEach(b => b.classList.toggle('on', b.dataset.tile === name));
 }
 
 // =============================================
 // STATE
 // =============================================
 const S = {
-  route: null,       // [[lat, lng, elev_ft], ...]
+  route: null,
   playing: false,
   progress: 0,
   speed: 1,
@@ -469,10 +483,11 @@ const S = {
   startMark: null,
   endMark: null,
   totalDistMi: 0,
+  routeMeta: null,
 };
 
 // =============================================
-// GRADE COLOR
+// HELPERS
 // =============================================
 function gc(grade) {
   const a = Math.abs(grade);
@@ -482,9 +497,6 @@ function gc(grade) {
   return '#ff5252';
 }
 
-// =============================================
-// HAVERSINE DISTANCE (miles)
-// =============================================
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 3958.8;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -493,8 +505,25 @@ function haversine(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+function showToast(msg, duration = 5000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function showLoading(text, sub) {
+  document.getElementById('loadingText').textContent = text || 'Analyzing route image...';
+  document.getElementById('loadingSub').textContent = sub || '';
+  document.getElementById('loadingOverlay').classList.remove('gone');
+}
+
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.add('gone');
+}
+
 // =============================================
-// DEMO ROUTE — Louisville/Boulder/Lefthand Canyon
+// DEMO ROUTE
 // =============================================
 function demoRoute() {
   const wp = [
@@ -519,32 +548,21 @@ function demoRoute() {
     [39.985,-105.154,5420],[39.982,-105.142,5390],[39.979,-105.135,5375],
     [39.9778,-105.132,5370],
   ];
-
-  // Interpolate
   const route = [];
   for (let i = 0; i < wp.length - 1; i++) {
     const a = wp[i], b = wp[i+1];
     for (let s = 0; s < 6; s++) {
       const t = s / 6;
-      route.push([
-        a[0]+(b[0]-a[0])*t,
-        a[1]+(b[1]-a[1])*t,
-        a[2]+(b[2]-a[2])*t,
-      ]);
+      route.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]);
     }
   }
   route.push(wp[wp.length-1]);
   return route;
 }
 
-// =============================================
-// COMPUTE TOTAL DISTANCE
-// =============================================
 function computeTotalDist(route) {
   let d = 0;
-  for (let i = 1; i < route.length; i++) {
-    d += haversine(route[i-1][0], route[i-1][1], route[i][0], route[i][1]);
-  }
+  for (let i = 1; i < route.length; i++) d += haversine(route[i-1][0], route[i-1][1], route[i][0], route[i][1]);
   return d;
 }
 
@@ -552,18 +570,83 @@ function computeTotalDist(route) {
 // GPX PARSER
 // =============================================
 function parseGPX(text) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(text, 'text/xml');
+  const doc = new DOMParser().parseFromString(text, 'text/xml');
   const pts = doc.querySelectorAll('trkpt, rtept');
   const route = [];
   pts.forEach(pt => {
     const lat = parseFloat(pt.getAttribute('lat'));
     const lng = parseFloat(pt.getAttribute('lon'));
     const eleNode = pt.querySelector('ele');
-    const elev = eleNode ? parseFloat(eleNode.textContent) * 3.28084 : 0; // meters to feet
+    const elev = eleNode ? parseFloat(eleNode.textContent) * 3.28084 : 0;
     if (!isNaN(lat) && !isNaN(lng)) route.push([lat, lng, elev]);
   });
   return route;
+}
+
+// =============================================
+// AI IMAGE EXTRACTION
+// =============================================
+async function extractRouteFromImage(file) {
+  showLoading(
+    'Analyzing route image...',
+    'Claude Vision is reading roads, landmarks, and coordinates'
+  );
+
+  try {
+    // Convert file to base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+
+    const mediaType = file.type || 'image/jpeg';
+
+    // Send to our serverless function
+    const resp = await fetch('/api/extract', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, mediaType }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      throw new Error(data.error || 'Failed to extract route');
+    }
+
+    if (!data.waypoints || data.waypoints.length < 2) {
+      throw new Error('Could not identify a route in this image');
+    }
+
+    hideLoading();
+
+    // Store route metadata
+    S.routeMeta = {
+      name: data.route_name,
+      location: data.location,
+      confidence: data.confidence,
+      notes: data.notes,
+    };
+
+    // Show route info badge
+    const riPanel = document.getElementById('routeInfo');
+    document.getElementById('riName').textContent = data.route_name || 'Extracted Route';
+    document.getElementById('riLoc').textContent = data.location || '';
+    const confPct = Math.round((data.confidence || 0) * 100);
+    const confColor = confPct >= 80 ? 'var(--green)' : confPct >= 50 ? 'var(--amber)' : 'var(--red)';
+    document.getElementById('riConf').innerHTML = `AI Confidence: <em style="color:${confColor}">${confPct}%</em>`;
+    riPanel.style.display = '';
+
+    return data.waypoints;
+
+  } catch (err) {
+    hideLoading();
+    showToast('⚠️ ' + err.message);
+    console.error('Route extraction error:', err);
+    return null;
+  }
 }
 
 // =============================================
@@ -575,38 +658,35 @@ function loadRoute(route) {
   S.playing = false;
   S.totalDistMi = computeTotalDist(route);
 
-  // Clear previous
   clearMapLayers();
 
   // Ghost line
   const ghostCoords = route.map(p => [p[0], p[1]]);
   S.ghostLine = L.polyline(ghostCoords, {
-    color: '#ffffff', opacity: 0.12, weight: 3,
-    dashArray: '8 6',
+    color: '#ffffff', opacity: 0.12, weight: 3, dashArray: '8 6',
   }).addTo(leafMap);
 
   // Start marker
-  const startIcon = L.divIcon({
-    className: '',
-    html: `<div style="width:22px;height:22px;border-radius:50%;background:#00e676;border:3px solid #0b1120;display:flex;align-items:center;justify-content:center;font:bold 10px 'JetBrains Mono',monospace;color:#0b1120;">S</div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-  });
-  S.startMark = L.marker([route[0][0], route[0][1]], { icon: startIcon }).addTo(leafMap);
+  S.startMark = L.marker([route[0][0], route[0][1]], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="width:22px;height:22px;border-radius:50%;background:#00e676;border:3px solid #0b1120;display:flex;align-items:center;justify-content:center;font:bold 10px 'JetBrains Mono',monospace;color:#0b1120;">S</div>`,
+      iconSize: [22, 22], iconAnchor: [11, 11],
+    }),
+  }).addTo(leafMap);
 
   // Current position marker
-  const dotIcon = L.divIcon({
-    className: '',
-    html: `<div style="width:14px;height:14px;border-radius:50%;background:#00e5ff;border:3px solid #0b1120;box-shadow:0 0 12px rgba(0,229,255,0.6);"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-  });
-  S.marker = L.marker([route[0][0], route[0][1]], { icon: dotIcon, zIndexOffset: 1000 }).addTo(leafMap);
+  S.marker = L.marker([route[0][0], route[0][1]], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="width:14px;height:14px;border-radius:50%;background:#00e5ff;border:3px solid #0b1120;box-shadow:0 0 12px rgba(0,229,255,0.6);"></div>`,
+      iconSize: [14, 14], iconAnchor: [7, 7],
+    }),
+    zIndexOffset: 1000,
+  }).addTo(leafMap);
 
-  // Fit bounds
   leafMap.fitBounds(S.ghostLine.getBounds(), { padding: [40, 40] });
 
-  // Show UI
   document.getElementById('intro').classList.add('gone');
   ['tileGroup','speedGroup','playBtn','resetBtn','statsPanel','livePanel','legendPanel'].forEach(id => {
     document.getElementById(id).style.display = '';
@@ -623,6 +703,7 @@ function clearMapLayers() {
   if (S.endMark) { leafMap.removeLayer(S.endMark); S.endMark = null; }
   S.activeSegments.forEach(seg => leafMap.removeLayer(seg));
   S.activeSegments = [];
+  document.getElementById('routeInfo').style.display = 'none';
 }
 
 // =============================================
@@ -631,28 +712,19 @@ function clearMapLayers() {
 function updateActiveRoute() {
   const route = S.route;
   const idx = Math.floor(S.progress * (route.length - 1));
-
-  // Only add new segments since last frame
   const existingCount = S.activeSegments.length;
   for (let i = existingCount; i < idx; i++) {
-    // Compute grade
     const dMi = haversine(route[i][0], route[i][1], route[i+1][0], route[i+1][1]);
     const dFt = dMi * 5280;
     const eDiff = route[i+1][2] - route[i][2];
     const grade = dFt > 0 ? (eDiff / dFt) * 100 : 0;
-
     const seg = L.polyline(
       [[route[i][0], route[i][1]], [route[i+1][0], route[i+1][1]]],
       { color: gc(grade), weight: 5, opacity: 0.9, lineCap: 'round' }
     ).addTo(leafMap);
-
     S.activeSegments.push(seg);
   }
-
-  // Move marker
-  if (S.marker) {
-    S.marker.setLatLng([route[idx][0], route[idx][1]]);
-  }
+  if (S.marker) S.marker.setLatLng([route[idx][0], route[idx][1]]);
 }
 
 function animate(ts) {
@@ -660,14 +732,12 @@ function animate(ts) {
   if (!S.lastTs) S.lastTs = ts;
   const dt = ts - S.lastTs;
   S.lastTs = ts;
-
   S.progress = Math.min(1, S.progress + (dt / 20000) * S.speed);
 
   updateActiveRoute();
   drawElevation();
   updateStats();
 
-  // Pan to follow
   const idx = Math.floor(S.progress * (S.route.length - 1));
   leafMap.panTo([S.route[idx][0], S.route[idx][1]], { animate: true, duration: 0.3 });
 
@@ -682,19 +752,18 @@ function animate(ts) {
 
 function addEndMarker() {
   const p = S.route[S.route.length - 1];
-  const icon = L.divIcon({
-    className: '',
-    html: `<div style="width:22px;height:22px;border-radius:50%;background:#ff5252;border:3px solid #0b1120;display:flex;align-items:center;justify-content:center;font:bold 10px 'JetBrains Mono',monospace;color:#0b1120;">F</div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-  });
-  S.endMark = L.marker([p[0], p[1]], { icon: icon }).addTo(leafMap);
+  S.endMark = L.marker([p[0], p[1]], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="width:22px;height:22px;border-radius:50%;background:#ff5252;border:3px solid #0b1120;display:flex;align-items:center;justify-content:center;font:bold 10px 'JetBrains Mono',monospace;color:#0b1120;">F</div>`,
+      iconSize: [22, 22], iconAnchor: [11, 11],
+    }),
+  }).addTo(leafMap);
 }
 
 function togglePlay() {
   if (!S.route) return;
   if (S.progress >= 1) {
-    // Clear and restart
     S.activeSegments.forEach(seg => leafMap.removeLayer(seg));
     S.activeSegments = [];
     if (S.endMark) { leafMap.removeLayer(S.endMark); S.endMark = null; }
@@ -741,39 +810,22 @@ function updateStats() {
   const route = S.route;
   if (!route) return;
   const idx = Math.floor(S.progress * (route.length - 1));
-
-  // Distance
   let dist = 0;
-  for (let i = 1; i <= idx; i++) {
-    dist += haversine(route[i-1][0], route[i-1][1], route[i][0], route[i][1]);
-  }
+  for (let i = 1; i <= idx; i++) dist += haversine(route[i-1][0], route[i-1][1], route[i][0], route[i][1]);
   document.getElementById('sDist').textContent = dist.toFixed(1) + ' mi';
-
-  // Gain
   let gain = 0;
-  for (let i = 1; i <= idx; i++) {
-    const d = route[i][2] - route[i-1][2];
-    if (d > 0) gain += d;
-  }
+  for (let i = 1; i <= idx; i++) { const d = route[i][2] - route[i-1][2]; if (d > 0) gain += d; }
   document.getElementById('sGain').textContent = Math.round(gain) + ' ft';
-
-  // Max
   const mx = Math.max(...route.slice(0, idx+1).map(p => p[2]));
   document.getElementById('sMax').textContent = Math.round(mx) + ' ft';
-
-  // Progress
   document.getElementById('sProg').textContent = Math.round(S.progress * 100) + '%';
-
-  // Live
   const elev = route[idx][2];
   document.getElementById('lElev').innerHTML = Math.round(elev) + ' <span class="lunit">ft</span>';
-
   let grade = 0;
   if (idx > 0) {
     const dMi = haversine(route[idx-1][0], route[idx-1][1], route[idx][0], route[idx][1]);
     const dFt = dMi * 5280;
-    const eDiff = route[idx][2] - route[idx-1][2];
-    grade = dFt > 0 ? (eDiff / dFt) * 100 : 0;
+    grade = dFt > 0 ? ((route[idx][2] - route[idx-1][2]) / dFt) * 100 : 0;
   }
   const gEl = document.getElementById('lGrade');
   gEl.textContent = (grade >= 0 ? '+' : '') + grade.toFixed(1) + '% grade';
@@ -789,25 +841,20 @@ const eCtx = eCanvas.getContext('2d');
 function drawElevation() {
   const route = S.route;
   if (!route) return;
-
   const dpr = window.devicePixelRatio || 1;
   const rect = eCanvas.parentElement.getBoundingClientRect();
   eCanvas.width = rect.width * dpr;
   eCanvas.height = rect.height * dpr;
   eCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
   const w = rect.width, h = rect.height;
   const pL = 52, pR = 12, pT = 28, pB = 22;
   const cW = w - pL - pR, cH = h - pT - pB;
-
   eCtx.clearRect(0, 0, w, h);
-
   const elevs = route.map(p => p[2]);
   const minE = Math.min(...elevs) - 80;
   const maxE = Math.max(...elevs) + 80;
   const idx = Math.floor(S.progress * (route.length - 1));
 
-  // Y axis
   eCtx.font = '500 10px "JetBrains Mono", monospace';
   eCtx.fillStyle = '#3d4f6e';
   eCtx.textAlign = 'right';
@@ -823,7 +870,6 @@ function drawElevation() {
     eCtx.stroke();
   }
 
-  // Ghost
   eCtx.beginPath();
   eCtx.strokeStyle = 'rgba(255,255,255,0.07)';
   eCtx.lineWidth = 1.5;
@@ -835,7 +881,6 @@ function drawElevation() {
   eCtx.stroke();
 
   if (idx > 0) {
-    // Fill
     const grad = eCtx.createLinearGradient(0, pT, 0, pT + cH);
     grad.addColorStop(0, 'rgba(0,229,255,0.15)');
     grad.addColorStop(1, 'rgba(0,229,255,0)');
@@ -850,8 +895,6 @@ function drawElevation() {
     eCtx.closePath();
     eCtx.fillStyle = grad;
     eCtx.fill();
-
-    // Colored segments
     for (let i = 0; i < idx; i++) {
       const x1 = pL + (i / (route.length - 1)) * cW;
       const y1 = pT + (1 - (route[i][2] - minE) / (maxE - minE)) * cH;
@@ -865,8 +908,6 @@ function drawElevation() {
       eCtx.lineTo(x2, y2);
       eCtx.stroke();
     }
-
-    // Cursor
     if (S.progress < 1) {
       const cx = pL + (idx / (route.length - 1)) * cW;
       const cy = pT + (1 - (route[idx][2] - minE) / (maxE - minE)) * cH;
@@ -888,14 +929,13 @@ function drawElevation() {
     }
   }
 
-  // X axis
   eCtx.font = '500 10px "JetBrains Mono", monospace';
   eCtx.fillStyle = '#3d4f6e';
   eCtx.textAlign = 'center';
   const totalMi = Math.round(S.totalDistMi);
-  const step = totalMi > 30 ? 10 : totalMi > 10 ? 5 : 2;
+  const step = totalMi > 30 ? 10 : totalMi > 10 ? 5 : totalMi > 4 ? 2 : 1;
   for (let m = 0; m <= totalMi; m += step) {
-    const xx = pL + (m / totalMi) * cW;
+    const xx = pL + (m / Math.max(totalMi, 1)) * cW;
     eCtx.fillText(m + ' mi', xx, pT + cH + 16);
   }
 }
@@ -906,11 +946,12 @@ window.addEventListener('resize', () => { if (S.route) drawElevation(); });
 // EVENT HANDLERS
 // =============================================
 function startDemo() {
+  S.routeMeta = null;
+  document.getElementById('routeInfo').style.display = 'none';
   loadRoute(demoRoute());
   setTimeout(() => togglePlay(), 800);
 }
 
-// Speed
 document.querySelectorAll('.spd').forEach(b => {
   b.addEventListener('click', () => {
     document.querySelectorAll('.spd').forEach(x => x.classList.remove('on'));
@@ -919,35 +960,39 @@ document.querySelectorAll('.spd').forEach(b => {
   });
 });
 
-// Tiles
 document.querySelectorAll('.tile-btn').forEach(b => {
   b.addEventListener('click', () => setTileStyle(b.dataset.tile));
 });
 
-// Image upload
-document.getElementById('imgInput').addEventListener('change', (e) => {
+// Image upload → AI extraction
+document.getElementById('imgInput').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  // For now, load demo route — in production, this sends to AI Vision API
-  alert('Image received: "' + file.name + '"\n\nIn production, this image would be sent to the AI Vision API to extract the route. For now, loading the demo route as a placeholder.');
-  loadRoute(demoRoute());
+
+  const waypoints = await extractRouteFromImage(file);
+  if (waypoints && waypoints.length >= 2) {
+    loadRoute(waypoints);
+    setTimeout(() => togglePlay(), 800);
+  }
 });
 
 // GPX import
 document.getElementById('gpxInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  S.routeMeta = null;
+  document.getElementById('routeInfo').style.display = 'none';
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
       const route = parseGPX(ev.target.result);
       if (route.length < 2) {
-        alert('Could not parse route from this file. Please try a different GPX/TCX file.');
+        showToast('Could not parse route from this file. Try a different GPX/TCX file.');
         return;
       }
       loadRoute(route);
     } catch (err) {
-      alert('Error parsing file: ' + err.message);
+      showToast('Error parsing file: ' + err.message);
     }
   };
   reader.readAsText(file);
