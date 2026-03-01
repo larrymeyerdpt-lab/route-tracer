@@ -589,19 +589,45 @@ function parseGPX(text) {
 async function extractRouteFromImage(file) {
   showLoading(
     'Analyzing route image...',
-    'Claude Vision is reading roads, landmarks, and coordinates'
+    'Preparing image for analysis...'
   );
 
   try {
-    // Convert file to base64
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
+    // Convert any image (including HEIC) to JPEG via canvas
+    // This fixes iOS Safari HEIC issues and compresses for API
+    const { base64, mediaType } = await new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        // Resize if very large (max 2000px on longest side)
+        let w = img.naturalWidth, h = img.naturalHeight;
+        const maxDim = 2000;
+        if (w > maxDim || h > maxDim) {
+          const scale = maxDim / Math.max(w, h);
+          w = Math.round(w * scale);
+          h = Math.round(h * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const b64 = dataUrl.split(',')[1];
+        resolve({ base64: b64, mediaType: 'image/jpeg' });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Could not load image. Try a PNG or JPEG screenshot.'));
+      };
+      img.src = url;
     });
 
-    const mediaType = file.type || 'image/jpeg';
+    showLoading(
+      'Analyzing route image...',
+      'Claude Vision is reading roads, landmarks, and coordinates'
+    );
 
     // Send to our serverless function
     const resp = await fetch('/api/extract', {
