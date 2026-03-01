@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
+        max_tokens: 8192,
         messages: [
           {
             role: 'user',
@@ -60,36 +60,47 @@ export default async function handler(req, res) {
               },
               {
                 type: 'text',
-                text: `You are a cycling route extraction expert. Analyze this image of a cycling route map/screenshot and extract the route as a series of geographic coordinates.
+                text: `You are an expert cycling route analyst. Your job is to look at this screenshot of a cycling route on a map and precisely trace the route as GPS coordinates.
 
-INSTRUCTIONS:
-1. Identify the cycling route shown in the image
-2. Identify any location names, road names, landmarks, or geographic features visible
-3. Using your knowledge of geography and road networks, determine the real-world coordinates of the route
-4. Return waypoints along the route at roughly every 0.5-1 mile interval
-5. For each waypoint, estimate the elevation in feet based on your geographic knowledge
+CRITICAL ANALYSIS STEPS:
+1. STUDY THE ROUTE SHAPE: Look carefully at the highlighted/colored line on the map. Note every curve, turn, and direction change. Is it a loop? An out-and-back? A point-to-point ride?
+2. IDENTIFY LANDMARKS: Read all visible text — city names, road numbers, highway labels, park names, neighborhoods, water features. These anchor your coordinates.
+3. IDENTIFY THE START AND END POINTS: Look for markers (dots, flags, pins) indicating where the ride begins and ends.
+4. TRACE THE EXACT PATH: Follow the colored route line segment by segment. At every point where the route changes direction (turns at intersections, curves along roads), place a waypoint.
+5. USE REAL ROADS: Match the route to actual roads you know exist in this area. The route follows real roads — use your geographic knowledge to snap waypoints to known road paths.
 
-IMPORTANT: You must respond with ONLY a valid JSON object, no other text. The format must be exactly:
+WAYPOINT DENSITY REQUIREMENTS:
+- Place a waypoint at EVERY turn, curve, or direction change
+- On straight road segments, place waypoints every 0.25–0.5 miles
+- For a typical 20-mile route, you should generate 60–120 waypoints
+- For a typical 40-mile route, you should generate 120–200 waypoints
+- MORE WAYPOINTS = BETTER. When in doubt, add more points along the route.
+
+ELEVATION:
+- Use your knowledge of the terrain in this area to estimate elevation at each point
+- Colorado Front Range: Louisville ~5,300ft, Boulder ~5,430ft, foothills rise to 6,000-9,000ft
+- Note significant climbs and descents
+
+RESPOND WITH ONLY THIS JSON (no markdown, no code fences, no explanation):
 
 {
-  "route_name": "Name of the route if identifiable",
-  "location": "General area (city, state, region)",
+  "route_name": "Descriptive name based on roads/area",
+  "location": "City, State",
+  "total_miles_estimate": estimated total distance,
   "confidence": 0.0 to 1.0,
-  "notes": "Brief description of what you see in the image",
+  "notes": "Describe the route shape and key roads identified",
   "waypoints": [
-    [latitude, longitude, elevation_in_feet],
-    [latitude, longitude, elevation_in_feet]
+    [latitude, longitude, elevation_feet],
+    [latitude, longitude, elevation_feet]
   ]
 }
 
-RULES:
-- Latitude and longitude must be decimal degrees (e.g., 40.015, -105.270)
-- Elevation must be in feet
-- Include at least 20 waypoints for a reasonable route
-- If you can identify the exact roads, trace them accurately
-- If the image is unclear, make your best estimate and note low confidence
-- The first and last waypoints should be the start and end of the visible route
-- ONLY return the JSON object, nothing else — no markdown, no code fences, no explanation`
+COMMON MISTAKES TO AVOID:
+- Do NOT just connect start and end with a straight line
+- Do NOT skip large portions of the route
+- Do NOT generate only 10-20 waypoints for a long route
+- Do NOT ignore curves and turns visible in the route line
+- TRACE the actual visible colored line on the map, point by point`
               },
             ],
           },
@@ -138,15 +149,16 @@ RULES:
       });
     }
 
-    // Interpolate if fewer than 50 waypoints for smoother animation
+    // Smooth interpolation for animation — ensure at least 100 points
     let waypoints = routeData.waypoints;
-    if (waypoints.length < 50) {
+    if (waypoints.length < 100) {
       const interpolated = [];
+      const targetPoints = Math.max(150, waypoints.length * 3);
+      const stepsPerSeg = Math.ceil(targetPoints / waypoints.length);
       for (let i = 0; i < waypoints.length - 1; i++) {
         const a = waypoints[i], b = waypoints[i + 1];
-        const steps = Math.max(3, Math.ceil(6 / (waypoints.length / 30)));
-        for (let s = 0; s < steps; s++) {
-          const t = s / steps;
+        for (let s = 0; s < stepsPerSeg; s++) {
+          const t = s / stepsPerSeg;
           interpolated.push([
             a[0] + (b[0] - a[0]) * t,
             a[1] + (b[1] - a[1]) * t,
